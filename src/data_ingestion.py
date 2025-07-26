@@ -56,7 +56,7 @@ def create_and_store_embeddings(chunks: list[dict]):
 
     # Conectamos con ChromaDB y almacenamos los datos
     # ChromaDB creará una base de datos local en la carpeta 'chroma_db'
-    client = chromadb.PersistentClient(path="../chroma_db")
+    client = chromadb.PersistentClient(path=str(project_root / "chroma_db"))
     collection_name = "career_path_docs"
 
     # Borramos la colección si ya existe, para empezar de cero cada vez

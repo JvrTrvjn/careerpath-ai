@@ -9,3 +9,5 @@ torchvision
 chromadb
 google-generativeai
 python-dotenv
+fastapi
+uvicorn[standard]
