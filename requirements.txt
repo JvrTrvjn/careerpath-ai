@@ -1,3 +1,4 @@
 pypdf
 pandas
 PyYAML
+langchain
