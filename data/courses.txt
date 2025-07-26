@@ -1,4 +1,0 @@
-Courses:
-- Introduction to Python
-- Advanced Algorithms
-- Machine Learning for Beginners
