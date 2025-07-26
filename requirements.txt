@@ -7,3 +7,5 @@ sentence-transformers
 torch
 torchvision
 chromadb
+google-generativeai
+python-dotenv
