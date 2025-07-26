@@ -3,3 +3,6 @@ pandas
 PyYAML
 langchain
 tabulate
+sentence-transformers
+torch
+torchvision
