@@ -3,10 +3,12 @@
 import yaml
 import pypdf
 import pandas as pd
+import chromadb
 from pathlib import Path
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
+# ... (las funciones load_config, read_pdf, read_documents_from_directory, y chunk_documents no cambian) ...
 def load_config(config_path: str = "config.yaml") -> dict:
     project_root = Path(__file__).resolve().parent.parent
     with open(project_root / config_path, "r") as f:
@@ -20,18 +22,14 @@ def read_documents_from_directory(directory_path: Path) -> list[dict]:
             if file_path.suffix == ".txt":
                 content = file_path.read_text(encoding="utf-8")
             elif file_path.suffix == ".pdf":
-                content = pypdf.PdfReader(file_path).pages[0].extract_text() # Simplificado para un PDF simple
+                content = pypdf.PdfReader(file_path).pages[0].extract_text()
 
             if content:
                 documents.append({"source": file_path.name, "content": content})
     return documents
 
 def chunk_documents(documents: list[dict]) -> list[dict]:
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len,
-    )
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = []
     for doc in documents:
         split_content = text_splitter.split_text(doc['content'])
@@ -43,21 +41,38 @@ def chunk_documents(documents: list[dict]) -> list[dict]:
             })
     return chunks
 
-def create_embeddings(chunks_df: pd.DataFrame) -> pd.DataFrame:
-    """Crea embeddings para el contenido de los chunks."""
-    # Elegimos un modelo de embedding eficiente y multilingüe
+def create_and_store_embeddings(chunks: list[dict]):
+    """Crea embeddings y los almacena en ChromaDB."""
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    # Convertimos la columna de contenido a una lista para el modelo
-    corpus = chunks_df["content"].tolist()
+    # Extraemos el contenido y los metadatos para ChromaDB
+    contents = [chunk['content'] for chunk in chunks]
+    metadatas = [{"source": chunk['source']} for chunk in chunks]
+    ids = [chunk['chunk_id'] for chunk in chunks]
 
     # Generamos los embeddings
-    print("\nGenerando embeddings... (la primera vez puede tardar en descargar el modelo)")
-    embeddings = embedding_model.encode(corpus, show_progress_bar=True)
+    print("\nGenerando embeddings...")
+    embeddings = embedding_model.encode(contents, show_progress_bar=True)
 
-    # Añadimos los embeddings como una nueva columna al DataFrame
-    chunks_df["embedding"] = embeddings.tolist()
-    return chunks_df
+    # Conectamos con ChromaDB y almacenamos los datos
+    # ChromaDB creará una base de datos local en la carpeta 'chroma_db'
+    client = chromadb.PersistentClient(path="../chroma_db")
+    collection_name = "career_path_docs"
+
+    # Borramos la colección si ya existe, para empezar de cero cada vez
+    if collection_name in [c.name for c in client.list_collections()]:
+        client.delete_collection(name=collection_name)
+
+    collection = client.create_collection(name=collection_name)
+
+    print(f"Almacenando {len(chunks)} chunks en la colección '{collection_name}' de ChromaDB...")
+    collection.add(
+        embeddings=embeddings.tolist(),
+        documents=contents,
+        metadatas=metadatas,
+        ids=ids
+    )
+    print("¡Almacenamiento completado!")
 
 # --- Punto de Entrada Principal ---
 if __name__ == "__main__":
@@ -68,13 +83,6 @@ if __name__ == "__main__":
 
     raw_documents = read_documents_from_directory(data_dir)
     document_chunks = chunk_documents(raw_documents)
-    df = pd.DataFrame(document_chunks)
 
-    # 4. Crear los embeddings
-    df_with_embeddings = create_embeddings(df)
-
-    print("\n--- Información del DataFrame con Embeddings ---")
-    df_with_embeddings.info()
-    print("\n--- Verificando un Embedding ---")
-    # Imprimimos la longitud del primer vector de embedding para confirmar
-    print(f"El primer chunk tiene un vector de embedding con {len(df_with_embeddings.iloc[0]['embedding'])} dimensiones.")
+    # 4. Crear y almacenar los embeddings
+    create_and_store_embeddings(document_chunks)
