@@ -8,22 +8,19 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- Título y Descripción ---
-st.title("🤖 CareerPath AI: Asesor de Carrera")
+st.title("🤖 CareerPath AI: Career Advisor")
 st.write(
-    "Haz una pregunta sobre tu plan de carrera y la IA te responderá basándose "
-    "en los documentos de la base de conocimiento."
+    "Ask a question about your career path and the AI will answer based "
+    "on the knowledge base documents."
 )
 
-# --- Input del Usuario ---
-user_question = st.text_input("¿Cuál es tu pregunta?", "")
+user_question = st.text_input("What is your question?", "")
 
-# --- Botón de Envío y Lógica Principal ---
-if st.button("Obtener Respuesta"):
+if st.button("Get Answer"):
     if user_question:
-        with st.spinner("Pensando... 🧠"):
+        with st.spinner("Thinking... 🧠"):
             response = get_rag_response(user_question)
-            st.success("¡Aquí tienes tu respuesta!")
+            st.success("Here is your answer!")
             st.write(response)
     else:
-        st.warning("Por favor, introduce una pregunta.")
+        st.warning("Please enter a question.")

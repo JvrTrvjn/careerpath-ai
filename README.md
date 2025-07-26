@@ -41,7 +41,7 @@ This project demonstrates a complete, end-to-end AI pipeline, from data ingestio
 
 4.  **Configure API Key:**
     -   Create a `.env` file in the project root.
-    -   Add your Google AI Studio key: `GOOGLE_API_KEY="your_key_here"`
+    -   Add your favorite AI Studio key: `GOOGLE_API_KEY="your_key_here"`
 
 ## 🏃 Usage
 

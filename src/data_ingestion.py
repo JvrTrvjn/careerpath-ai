@@ -1,4 +1,3 @@
-# src/1_data_ingestion.py
 
 import yaml
 import pypdf
@@ -8,7 +7,6 @@ from pathlib import Path
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
-# ... (las funciones load_config, read_pdf, read_documents_from_directory, y chunk_documents no cambian) ...
 def load_config(config_path: str = "config.yaml") -> dict:
     project_root = Path(__file__).resolve().parent.parent
     with open(project_root / config_path, "r") as f:
@@ -42,39 +40,32 @@ def chunk_documents(documents: list[dict]) -> list[dict]:
     return chunks
 
 def create_and_store_embeddings(chunks: list[dict]):
-    """Crea embeddings y los almacena en ChromaDB."""
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    # Extraemos el contenido y los metadatos para ChromaDB
     contents = [chunk['content'] for chunk in chunks]
     metadatas = [{"source": chunk['source']} for chunk in chunks]
     ids = [chunk['chunk_id'] for chunk in chunks]
 
-    # Generamos los embeddings
-    print("\nGenerando embeddings...")
+    print("\nGenerating embeddings...")
     embeddings = embedding_model.encode(contents, show_progress_bar=True)
 
-    # Conectamos con ChromaDB y almacenamos los datos
-    # ChromaDB creará una base de datos local en la carpeta 'chroma_db'
     client = chromadb.PersistentClient(path=str(project_root / "chroma_db"))
     collection_name = "career_path_docs"
 
-    # Borramos la colección si ya existe, para empezar de cero cada vez
     if collection_name in [c.name for c in client.list_collections()]:
         client.delete_collection(name=collection_name)
 
     collection = client.create_collection(name=collection_name)
 
-    print(f"Almacenando {len(chunks)} chunks en la colección '{collection_name}' de ChromaDB...")
+    print(f"Storing {len(chunks)} chunks in the '{collection_name}' collection of ChromaDB...")
     collection.add(
         embeddings=embeddings.tolist(),
         documents=contents,
         metadatas=metadatas,
         ids=ids
     )
-    print("¡Almacenamiento completado!")
+    print("Storage completed!")
 
-# --- Punto de Entrada Principal ---
 if __name__ == "__main__":
     config = load_config()
     data_path_str = config['data_source']['path']
@@ -84,5 +75,4 @@ if __name__ == "__main__":
     raw_documents = read_documents_from_directory(data_dir)
     document_chunks = chunk_documents(raw_documents)
 
-    # 4. Crear y almacenar los embeddings
     create_and_store_embeddings(document_chunks)
