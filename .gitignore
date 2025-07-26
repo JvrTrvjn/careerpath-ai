@@ -101,5 +101,7 @@ env/
 # Data files
 data/
 
+/chroma_db/
+
 # GEMINI.md
 GEMINI.md
