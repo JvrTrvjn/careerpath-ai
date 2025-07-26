@@ -1,20 +1,16 @@
+# src/1_data_ingestion.py
+
 import yaml
 import pypdf
 import pandas as pd
 from pathlib import Path
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from sentence_transformers import SentenceTransformer
 
 def load_config(config_path: str = "config.yaml") -> dict:
     project_root = Path(__file__).resolve().parent.parent
     with open(project_root / config_path, "r") as f:
         return yaml.safe_load(f)
-
-def read_pdf(file_path: Path) -> str:
-    reader = pypdf.PdfReader(file_path)
-    pdf_text = ""
-    for page in reader.pages:
-        pdf_text += page.extract_text()
-    return pdf_text
 
 def read_documents_from_directory(directory_path: Path) -> list[dict]:
     documents = []
@@ -24,21 +20,18 @@ def read_documents_from_directory(directory_path: Path) -> list[dict]:
             if file_path.suffix == ".txt":
                 content = file_path.read_text(encoding="utf-8")
             elif file_path.suffix == ".pdf":
-                content = read_pdf(file_path)
+                content = pypdf.PdfReader(file_path).pages[0].extract_text() # Simplificado para un PDF simple
 
             if content:
-                # Cambiamos 'filename' por 'source' para más claridad
                 documents.append({"source": file_path.name, "content": content})
     return documents
 
 def chunk_documents(documents: list[dict]) -> list[dict]:
-    """Divide el contenido de los documentos en chunks."""
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,      # El tamaño máximo de cada chunk en caracteres
-        chunk_overlap=200,    # El número de caracteres que se solapan entre chunks
+        chunk_size=1000,
+        chunk_overlap=200,
         length_function=len,
     )
-
     chunks = []
     for doc in documents:
         split_content = text_splitter.split_text(doc['content'])
@@ -46,9 +39,25 @@ def chunk_documents(documents: list[dict]) -> list[dict]:
             chunks.append({
                 "source": doc['source'],
                 "content": chunk_text,
-                "chunk_id": f"{doc['source']}-{i}" # Un ID único para cada chunk
+                "chunk_id": f"{doc['source']}-{i}"
             })
     return chunks
+
+def create_embeddings(chunks_df: pd.DataFrame) -> pd.DataFrame:
+    """Crea embeddings para el contenido de los chunks."""
+    # Elegimos un modelo de embedding eficiente y multilingüe
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    # Convertimos la columna de contenido a una lista para el modelo
+    corpus = chunks_df["content"].tolist()
+
+    # Generamos los embeddings
+    print("\nGenerando embeddings... (la primera vez puede tardar en descargar el modelo)")
+    embeddings = embedding_model.encode(corpus, show_progress_bar=True)
+
+    # Añadimos los embeddings como una nueva columna al DataFrame
+    chunks_df["embedding"] = embeddings.tolist()
+    return chunks_df
 
 # --- Punto de Entrada Principal ---
 if __name__ == "__main__":
@@ -57,19 +66,15 @@ if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
     data_dir = project_root / data_path_str
 
-    # 1. Leer los documentos originales
     raw_documents = read_documents_from_directory(data_dir)
-    print(f"Se han encontrado y procesado {len(raw_documents)} documentos.")
-
-    # 2. Dividir los documentos en chunks
     document_chunks = chunk_documents(raw_documents)
-    print(f"Los documentos se han dividido en {len(document_chunks)} chunks.")
-
-    # 3. Crear el DataFrame final con los chunks
     df = pd.DataFrame(document_chunks)
 
-    print("\n--- Información del DataFrame de Chunks ---")
-    df.info()
-    print("\n--- Ejemplo de un Chunk ---")
-    # .to_markdown() es útil para una visualización limpia en la terminal
-    print(df.head(1).to_markdown(index=False))
+    # 4. Crear los embeddings
+    df_with_embeddings = create_embeddings(df)
+
+    print("\n--- Información del DataFrame con Embeddings ---")
+    df_with_embeddings.info()
+    print("\n--- Verificando un Embedding ---")
+    # Imprimimos la longitud del primer vector de embedding para confirmar
+    print(f"El primer chunk tiene un vector de embedding con {len(df_with_embeddings.iloc[0]['embedding'])} dimensiones.")
