@@ -1,0 +1,3 @@
+# config.yaml
+data_source:
+  path: "data" # Ruta a la carpeta de datos, relativa a la raíz del proyecto.
