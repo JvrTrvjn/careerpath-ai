@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
+.env
+
 # Distribution / packaging
 .Python
 build/
@@ -100,6 +102,8 @@ env/
 
 # Data files
 data/
+
+/chroma_db/
 
 # GEMINI.md
 GEMINI.md

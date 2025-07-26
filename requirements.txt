@@ -1,0 +1,11 @@
+pypdf
+pandas
+PyYAML
+langchain
+tabulate
+sentence-transformers
+torch
+torchvision
+chromadb
+google-generativeai
+python-dotenv
