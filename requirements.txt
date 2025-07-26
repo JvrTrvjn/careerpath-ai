@@ -6,3 +6,4 @@ tabulate
 sentence-transformers
 torch
 torchvision
+chromadb
