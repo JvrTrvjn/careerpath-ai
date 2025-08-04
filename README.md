@@ -24,7 +24,7 @@ This project demonstrates a complete, end-to-end AI pipeline, from data ingestio
 
 1.  **Clone the repository:**
     ```bash
-    git clone [URL-DE-TU-REPO-AQUI]
+    git clone https://github.com/jtrevijano/careerpath-ai.git
     cd careerpath-ai
     ```
 
